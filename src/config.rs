@@ -1,14 +1,18 @@
-use serde::{Serialize, Deserialize};
 use std::{
     default::Default, 
     path::PathBuf,
-    ffi::{OsString}
 };
+
+use serde::{Serialize, Deserialize};
 use home::home_dir;
+
+pub const CONFIG_FOLDER: &'static str = ".config/krm";
+pub const DBNAME: &'static str = "storage";
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
-    database_path: String,
+    pub database_path: String,
+    pub private_key_path: String,
 }
 
 impl Default for Config {
@@ -18,11 +22,15 @@ impl Default for Config {
             .as_os_str()
         .to_os_string();
 
-        let mut path_full = PathBuf::from(&home);
-        path_full.push(".config/krm/storage.sqlite");
+        let mut path_key = PathBuf::from(&home);
+        let mut path_db = path_key.clone(); 
+        
+        path_db.push(format!("{CONFIG_FOLDER}/{DBNAME}"));
+        path_key.push(".ssh/id_rsa");
 
         Self {
-            database_path: path_full.into_os_string().into_string().unwrap()
+            database_path:    format!("{}", path_db.display()),
+            private_key_path: format!("{}", path_key.display())
         } 
     }
 }
