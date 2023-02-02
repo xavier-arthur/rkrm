@@ -5,7 +5,7 @@ mod crypto;
 mod traits;
 
 
-use std::{process::ExitCode, io::Read};
+use std::{process::ExitCode};
 
 use krm::{
     bootstrap,
@@ -17,12 +17,15 @@ use traits::IntoString;
 use crypto::Crypto;
 
 fn main() -> ExitCode {
-    // let args = opts::Args::from_args();
+    let args = opts::Args::from_args();
 
-    // if  args.bootstrap {
-    //     bootstrap();
-    //     return ExitCode::SUCCESS;
-    // };
+    println!("{}", args.action);
+    todo!();
+
+    if  args.bootstrap {
+        bootstrap();
+        return ExitCode::SUCCESS;
+    };
 
     let private = std::fs::read_to_string("/home/arthurx/private_key").unwrap();
     let pubk = std::fs::read_to_string("/home/arthurx/public_key").unwrap();
