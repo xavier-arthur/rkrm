@@ -1,13 +1,10 @@
 use structopt::StructOpt;
 
-#[derive(Debug)]
-
 #[derive(Debug, StructOpt)]
 pub struct Args {
 
     #[structopt(short, long)]
-    pub action: Action,
-
+    pub action: String,
 
     #[structopt(long)]
     pub bootstrap: bool,
