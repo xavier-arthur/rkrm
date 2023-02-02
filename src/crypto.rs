@@ -60,7 +60,7 @@ impl Crypto {
                     data.as_ref().as_bytes(),
                     &mut self.buf,
                     Padding::PKCS1
-                ).expect(format!("coudn't not encrypt ! at {}", line!()).as_str());
+                ).expect(format!("could not encrypt ! at {}", line!()).as_str());
 
                 self.buf.clone()
             }, 

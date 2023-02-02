@@ -41,7 +41,7 @@ pub fn run_ddl(connection: &sqlite::Connection) -> Result<(), sqlite::Error>{
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         access TEXT,
         username TEXT,
-        password TEXT NOT NULL,
+        password BLOB NOT NULL,
         active INT DEFAULT 1
     )";
 
