@@ -35,8 +35,10 @@ pub fn bootstrap() {
 }
 
 pub fn run_ddl(connection: &sqlite::Connection) -> Result<(), sqlite::Error>{
-    let sql = "CREATE TABLE services (
-        id INT UNSIGNED PRIMARY KEY,
+    let sql = "  
+    DROP TABLE IF EXISTS services;
+    CREATE TABLE services (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         access TEXT,
         username TEXT,
         password TEXT NOT NULL,
