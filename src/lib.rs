@@ -1,6 +1,9 @@
-use std::fs::{
-    read_to_string,
-    create_dir_all, self
+use std::{
+    thread,
+    fs::{
+        read_to_string,
+        create_dir_all, self
+    }
 };
 
 use std::{
@@ -8,6 +11,7 @@ use std::{
 };
 
 use config::Config;
+use home::home_dir;
 
 mod config;
 
@@ -20,18 +24,22 @@ pub fn bootstrap() {
     let config_toml = toml::to_string_pretty(&config).unwrap();
 
     if !Path::exists(&config_path) {
-        create_dir_all(&config_path);
+        create_dir_all(&config_path).expect("permission denied on creating config path");
     }
 
-    let connection = match sqlite::open(&config.database_path) {
-        Ok(v) => v,
-        Err(e) => panic!("{:#?}\ncouldn't open connection to database at {}", e.message, config.database_path)
-    };
+    let handle = thread::spawn(move || {
+        let connection = match sqlite::open(&config.database_path) {
+            Ok(v) => v,
+            Err(e) => panic!("{:#?}\ncouldn't open connection to database at {}", e.message, config.database_path)
+        };
 
-    run_ddl(&connection).unwrap_or_else(|e| panic!("could't run database's DDL\n{:#?}", e));
+        run_ddl(&connection).unwrap_or_else(|e| panic!("could't run database's DDL\n{:#?}", e));
+    });
 
     config_path.push("config.toml");
-    fs::write(config_path, config_toml);
+    fs::write(config_path, config_toml).unwrap();
+
+    handle.join();
 }
 
 pub fn run_ddl(connection: &sqlite::Connection) -> Result<(), sqlite::Error>{

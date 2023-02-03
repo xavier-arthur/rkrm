@@ -1,4 +1,4 @@
-use std::{str::FromStr, fmt::{Display}};
+use std::{fmt::{Display}};
 
 use structopt::StructOpt;
 
@@ -10,6 +10,7 @@ pub enum Action {
     },
 
     Add {
+        username: String,
         service: String,
         password: Option<String>
     },

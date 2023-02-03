@@ -22,26 +22,44 @@ impl Elegant {
         }
     }
 
-    fn parse_values(data: &mut HashMap<&str, Option<&str>>) {
-        for (k, v) in data.iter_mut() {
+    fn parse_values(data: &mut HashMap<&str, Option<String>>) {
+        for (_, v) in data.iter_mut() {
             if v.is_none() {
-                *v = Some("NULL");
+                *v = Some("NULL".to_string());
             } else {
-                let value = format!("'{}'", v.unwrap());
-
-                *v = Some(&value.to_string());
+                let formatted = format!("'{}'", v.clone().unwrap());
+                *v = Some(formatted);
             }
         }
     }
 
-    pub fn insert(&mut self, table: &str, mut data: HashMap<&str, Option<&str>>) {
-        let sql = String::from(format!("INSERT INTO {} ", table));
+    pub fn insert(&mut self, table: &str, mut data: HashMap<&str, Option<String>>) -> Result<(), sqlite::Error> {
         Self::parse_values(&mut data);
 
-        println!("{data:#?}");
+        let mut key_pair: Vec<(&str, Option<String>)> = vec![];
+
+        for (k, v) in data.into_iter() {
+            key_pair.push((k, v));
+        }
+
+        let keys: String = key_pair.iter()
+            .map(|(k, _)| *k)
+            .collect::<Vec<&str>>()
+            .join(",");
+
+        let values: String = key_pair.into_iter()
+            .map(|(_, v)| v.unwrap())
+            .collect::<Vec<String>>()
+            .join(",");
+
+
+        let sql = String::from(format!("INSERT INTO {table} ({keys}) VALUES ({values});"));
+
+        self.connection.execute(sql)
     }
 
     pub fn update(&mut self, table: &str, data: HashMap<&str, Option<&str>>, clause: &str) {
 
+        todo!()
     }
 }

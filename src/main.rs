@@ -19,19 +19,9 @@ use crypto::Crypto;
 
 fn main() -> ExitCode {
 
-    let conf = parse_configs("/home/arthurx/.config/krm/config.toml");
 
-
-    let mut elegant = elegant::Elegant::new(
-        "/home/arthurx/.config/krm/storage"
-    );
-
-    elegant.insert("services", hashmap![
-        "service" => None,
-        "password" => Some("123")
-    ]);
-
-    return ExitCode::SUCCESS;
+    // println!("{conf:?}");
+    // return ExitCode::SUCCESS;
 
     let args = opts::Args::from_args();
 
@@ -40,15 +30,16 @@ fn main() -> ExitCode {
             bootstrap();
         },
 
-        Action::Add { service, password } => {
-            let connection = sqlite::open(conf.database_path).unwrap();
+        Action::Add { service, password, username } => {
 
             let private = std::fs::read_to_string("/home/arthurx/private_key").unwrap();
             let pubk = std::fs::read_to_string("/home/arthurx/public_key").unwrap();
+
             let mut Crypto = Crypto::new_with_keys(
                 Some(private),
                 Some(pubk)
             );
+
 
             let passwd_buf = Crypto.encrypt(password.unwrap());
             let passwd_bytes: String = passwd_buf
@@ -56,10 +47,21 @@ fn main() -> ExitCode {
                 .map(|v| v.to_string() + " ")
                 .collect();
 
-            connection.execute(format!("INSERT INTO services (access, username, password) VALUES ('{service}', 'garok', '{passwd_bytes}')"));
+
+            let mut elegant = elegant::Elegant::new(
+                "/home/arthurx/.config/krm/storage"
+            );
+
+            elegant.insert("services", hashmap![
+                "username" => Some("garok".to_string()),
+                "password" => Some(passwd_bytes),
+                "access"   => Some(service)
+            ]).expect("could not insert");
         },
 
         Action::Get { service } => {
+            let conf = parse_configs(config::Config::get_path());
+
             let sql = format!("SELECT * FROM services WHERE id = {service}");
 
             let private = std::fs::read_to_string("/home/arthurx/private_key").unwrap();

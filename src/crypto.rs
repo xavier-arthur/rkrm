@@ -39,7 +39,7 @@ impl Crypto {
 
     pub fn set_passphrase<T>(&mut self, passphrase: T) 
     where 
-    T: AsRef<str>
+        T: AsRef<str>
     {
         let passwd = passphrase.as_ref();
 
@@ -95,5 +95,10 @@ impl Crypto {
 
             Err(e) => panic!("could not parse rsa file {:#?}", e)
         }
+    }
+
+    pub fn read_keys() -> (Option<String>, Option<String>) {
+
+        todo!()
     }
 }
