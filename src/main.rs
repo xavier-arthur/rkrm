@@ -4,13 +4,14 @@ mod macros;
 mod crypto;
 mod traits;
 mod elegant;
+mod errors;
 
 use std::{process::ExitCode};
 
 use krm::{
-    bootstrap,
+    bootstrap, get_config,
     // run_ddl,
-    parse_configs
+    // parse_configs
 };
 use opts::Action;
 use structopt::StructOpt;
@@ -19,10 +20,6 @@ use crypto::Crypto;
 
 fn main() -> ExitCode {
 
-
-    // println!("{conf:?}");
-    // return ExitCode::SUCCESS;
-
     let args = opts::Args::from_args();
 
     match args.action {
@@ -30,18 +27,34 @@ fn main() -> ExitCode {
             bootstrap();
         },
 
-        Action::Add { service, password, username } => {
+        Action::Add { service, mut password, username, prompt} => {
+            let configs = match get_config() {
+                Ok(v) => v,
+                Err(e) => {
+                    println!("Configuration file at {} not found", e.path.unwrap().display());
+                    std::process::exit(1);
+                }
+            };
 
-            let private = std::fs::read_to_string("/home/arthurx/private_key").unwrap();
-            let pubk = std::fs::read_to_string("/home/arthurx/public_key").unwrap();
+            let (public, private) = match configs.read_keys() {
+                Ok((publ, prv)) => (publ, prv),
+                Err(_) => {
+                    println!("one or more ssh keys don't exist");
+                    std::process::exit(1);
+                }
+            };
 
-            let mut Crypto = Crypto::new_with_keys(
-                Some(private),
-                Some(pubk)
+            let mut crypto = Crypto::new_with_keys(
+                Some(public),
+                Some(private)
             );
 
+            if prompt {
+                let input = rpassword::prompt_password("Enter secret: ").unwrap();
+                password = Some(input);
+            }
 
-            let passwd_buf = Crypto.encrypt(password.unwrap());
+            let passwd_buf = crypto.encrypt(password.unwrap());
             let passwd_bytes: String = passwd_buf
                 .into_iter()
                 .map(|v| v.to_string() + " ")
@@ -53,59 +66,60 @@ fn main() -> ExitCode {
             );
 
             elegant.insert("services", hashmap![
-                "username" => Some("garok".to_string()),
-                "password" => Some(passwd_bytes),
+                "username" => Some(username),
+                "password" => Some(passwd_bytes.trim().to_owned()),
                 "access"   => Some(service)
             ]).expect("could not insert");
         },
 
         Action::Get { service } => {
-            let conf = parse_configs(config::Config::get_path());
+            let configs = match get_config() {
+                Ok(v) => v,
+                Err(e) => {
+                    println!("Configuration file at {} not found", e.path.unwrap().display());
+                    std::process::exit(1);
+                }
+            };
 
-            let sql = format!("SELECT * FROM services WHERE id = {service}");
+            let sql = format!("SELECT password FROM services WHERE id = {service}");
 
-            let private = std::fs::read_to_string("/home/arthurx/private_key").unwrap();
-            let pubk = std::fs::read_to_string("/home/arthurx/public_key").unwrap();
-            let mut Crypto = Crypto::new_with_keys(
-                Some(private),
-                Some(pubk)
+            let (public, private) = match configs.read_keys() {
+                Ok((publ, prv)) => (publ, prv),
+                Err(_) => {
+                    println!("one or more ssh keys don't exist");
+                    std::process::exit(1);
+                }
+            };
+
+            let mut crypto = Crypto::new_with_keys(
+                Some(public),
+                Some(private)
             );
 
-            let connection = sqlite::open(conf.database_path).unwrap();
+            let connection = sqlite::open(configs.database_path).unwrap();
             let mut map: std::collections::HashMap<String, Option<String>> = hashmap![];
 
             connection.iterate(sql, |pairs| { 
                 for &(k, v) in pairs {
-                    map.insert(k.to_owned(), if v.is_some() { Some(v.unwrap().to_owned()) } else { None } );
+                    map.insert(k.to_owned(), v.and_then(|v| Some(v.to_owned())));
                 }
                 true
             }).unwrap();
 
-            let passwd: Vec<u8> = map["password"]
-                .as_ref()
+            let passwd: Vec<u8> = map["password"].as_ref()
                 .unwrap()
-                .trim()
                 .split(" ")
-                .map(|v| v.parse().unwrap())
+                .map(|v| v.trim().parse().unwrap())
                 .collect();
 
-            let desem = Crypto.decrypt(&passwd)
+            let unencrypted = crypto.decrypt(&passwd)
                 .into_string();
 
-            println!("{} | {}", map["username"].as_ref().unwrap(), desem);
+            println!("{unencrypted}");
         },
 
         _ => { }
     };
 
     ExitCode::SUCCESS
-
-    // let private = std::fs::read_to_string("/home/arthurx/private_key").unwrap();
-    // let pubk = std::fs::read_to_string("/home/arthurx/public_key").unwrap();
-
-    // let mut crypt = Crypto::new_with_keys(
-    //     Some(private),
-    //     Some(pubk)
-    // );
-    // todo!()
 }

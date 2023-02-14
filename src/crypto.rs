@@ -16,9 +16,6 @@ pub struct Crypto {
 }
 
 impl Crypto {
-    fn check_fields(&self) {
-    }
-
     pub fn new() -> Self {
         Self {
             buf: vec![],
@@ -95,10 +92,5 @@ impl Crypto {
 
             Err(e) => panic!("could not parse rsa file {:#?}", e)
         }
-    }
-
-    pub fn read_keys() -> (Option<String>, Option<String>) {
-
-        todo!()
     }
 }

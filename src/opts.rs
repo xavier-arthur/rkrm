@@ -12,7 +12,10 @@ pub enum Action {
     Add {
         username: String,
         service: String,
-        password: Option<String>
+        password: Option<String>,
+
+        #[structopt(long)]
+        prompt: bool
     },
 
     Rm {
@@ -34,7 +37,6 @@ impl Display for Action {
     about = "A password manager with RSA encryption"
 )]
 pub struct Args {
-
     #[structopt(subcommand)]
     pub action: Action,
 

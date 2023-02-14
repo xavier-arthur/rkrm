@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 home = "0.5.4"
 openssl = "0.10.45"
+rpassword = "7.2.0"
 serde = { version = "1.0.152", features = ["derive"] }
 sqlite = "0.30.3"
 structopt = "0.3.26"

@@ -1,19 +1,17 @@
 use std::{
     thread,
     fs::{
-        read_to_string,
-        create_dir_all, self
-    }
-};
-
-use std::{
+        create_dir_all,
+        self
+    },
     path::Path
 };
 
 use config::Config;
-use home::home_dir;
+use errors::FileNotFoundError;
 
 mod config;
+mod errors;
 
 pub fn bootstrap() {
     let config = Config::default();
@@ -28,21 +26,30 @@ pub fn bootstrap() {
     }
 
     let handle = thread::spawn(move || {
+        let database = config.database_path.clone();
+
+        if Path::new(&database).exists() {
+            let dbOld = format!("{}.old", &database);
+            std::fs::rename(database, dbOld);
+        }
+
         let connection = match sqlite::open(&config.database_path) {
             Ok(v) => v,
             Err(e) => panic!("{:#?}\ncouldn't open connection to database at {}", e.message, config.database_path)
         };
 
-        run_ddl(&connection).unwrap_or_else(|e| panic!("could't run database's DDL\n{:#?}", e));
+        ddl(&connection).unwrap_or_else(|e| panic!("could't run database's DDL\n{:#?}", e));
     });
 
     config_path.push("config.toml");
-    fs::write(config_path, config_toml).unwrap();
+    fs::write(&config_path, config_toml).unwrap();
+
+    println!("created config file at {}", config_path.display());
 
     handle.join();
 }
 
-pub fn run_ddl(connection: &sqlite::Connection) -> Result<(), sqlite::Error>{
+pub fn ddl(connection: &sqlite::Connection) -> Result<(), sqlite::Error> {
     let sql = "  
     DROP TABLE IF EXISTS services;
     CREATE TABLE services (
@@ -56,12 +63,23 @@ pub fn run_ddl(connection: &sqlite::Connection) -> Result<(), sqlite::Error>{
     connection.execute(sql)
 }
 
-pub fn parse_configs<T>(path: T) -> Config
-where 
-    T: AsRef<Path>
+pub fn get_config() -> Result<Config, errors::FileNotFoundError>
 {
-    let toml = read_to_string(path).unwrap();
-    let config: Config = toml::from_str(&toml).unwrap();
+    let toml_wd = Config::get_path();
+    let toml_path = Path::new(&toml_wd);
+    let config: Config;
 
-    config
+    if toml_path.exists() {
+        let file_content = std::fs::read_to_string(&toml_path).unwrap();
+        config = toml::from_str(&file_content).unwrap();
+        Ok(config)
+    } else {
+        let err = FileNotFoundError {
+            message: None,
+            path: Some(Box::new(toml_path.to_owned()))
+        };
+
+        Err(err)
+    }
+
 }
