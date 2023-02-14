@@ -37,11 +37,15 @@ impl Display for Action {
     about = "A password manager with RSA encryption"
 )]
 pub struct Args {
+
+    #[structopt(long)]
+    pub verbose: bool,
+
     #[structopt(subcommand)]
     pub action: Action,
 
-    #[structopt(short, long)]
-    pub private_key: Option<String>,
+    // #[structopt(short, long)]
+    // pub private_key: Option<String>,
 
     #[structopt(short, long)]
     pub storage: Option<String>

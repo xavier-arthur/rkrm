@@ -4,7 +4,8 @@ use std::{
         create_dir_all,
         self
     },
-    path::Path
+    path::Path,
+    io::Write
 };
 
 use config::Config;
@@ -13,7 +14,7 @@ use errors::FileNotFoundError;
 mod config;
 mod errors;
 
-pub fn bootstrap() {
+pub fn bootstrap(verbose: bool) {
     let config = Config::default();
 
     let mut config_path = home::home_dir().unwrap();
@@ -29,8 +30,19 @@ pub fn bootstrap() {
         let database = config.database_path.clone();
 
         if Path::new(&database).exists() {
-            let dbOld = format!("{}.old", &database);
-            std::fs::rename(database, dbOld);
+            let db_old = format!("{}.old", &database);
+            if let Err(e) = std::fs::rename(database, db_old) {
+                eprint!("could not rename old database");
+
+                if verbose {
+                    eprintln!("\nERROR:\n {}", e);
+                } else {
+                    eprint!(", run with --verbose to read the backtrace");
+                    std::io::stdout().flush().unwrap();
+                }
+
+                std::process::exit(1);
+            };
         }
 
         let connection = match sqlite::open(&config.database_path) {

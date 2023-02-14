@@ -7,6 +7,7 @@ mod elegant;
 mod errors;
 
 use std::{process::ExitCode};
+use elegant::Elegant;
 
 use krm::{
     bootstrap, get_config,
@@ -24,7 +25,7 @@ fn main() -> ExitCode {
 
     match args.action {
         Action::Bootstrap => {
-            bootstrap();
+            bootstrap(args.verbose);
         },
 
         Action::Add { service, mut password, username, prompt} => {
@@ -61,7 +62,7 @@ fn main() -> ExitCode {
                 .collect();
 
 
-            let mut elegant = elegant::Elegant::new(
+            let mut elegant = Elegant::new(
                 "/home/arthurx/.config/krm/storage"
             );
 
@@ -81,8 +82,6 @@ fn main() -> ExitCode {
                 }
             };
 
-            let sql = format!("SELECT password FROM services WHERE id = {service}");
-
             let (public, private) = match configs.read_keys() {
                 Ok((publ, prv)) => (publ, prv),
                 Err(_) => {
@@ -96,18 +95,16 @@ fn main() -> ExitCode {
                 Some(private)
             );
 
-            let connection = sqlite::open(configs.database_path).unwrap();
-            let mut map: std::collections::HashMap<String, Option<String>> = hashmap![];
+            let elegant = Elegant::new(configs.database_path);
 
-            connection.iterate(sql, |pairs| { 
-                for &(k, v) in pairs {
-                    map.insert(k.to_owned(), v.and_then(|v| Some(v.to_owned())));
-                }
-                true
-            }).unwrap();
+            let cols: [&str; 3] = ["id", "username", "password"];
+            let map = elegant.select(
+                "services",
+                &format!("access = '{}'", service),
+                &cols
+            );
 
-            let passwd: Vec<u8> = map["password"].as_ref()
-                .unwrap()
+            let passwd: Vec<u8> = map["password"]
                 .split(" ")
                 .map(|v| v.trim().parse().unwrap())
                 .collect();

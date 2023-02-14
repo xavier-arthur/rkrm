@@ -3,6 +3,10 @@ use std::{
     path::Path
 };
 
+use sqlite::State;
+
+use crate::hashmap;
+
 pub struct Elegant {
     connection: sqlite::Connection
 }
@@ -56,6 +60,50 @@ impl Elegant {
         let sql = String::from(format!("INSERT INTO {table} ({keys}) VALUES ({values});"));
 
         self.connection.execute(sql)
+    }
+
+    pub fn select<T>(&self, table: T, condition: T, columns: &[T]) -> HashMap<String, String> 
+    where
+        T: AsRef<str>
+    {
+        let mut hmap: HashMap<String, String> = hashmap![];
+
+        let table     = table.as_ref();
+        let condition = condition.as_ref();
+
+        let cols = columns.into_iter()
+            .fold(String::new(), |carry, v| {
+                let separator = if carry.len() > 0 {
+                    ","
+                } else {
+                    ""
+                };
+
+                format!("{carry}{separator} {}", v.as_ref().to_owned())
+            });
+
+
+        let sql = format!("SELECT {cols} FROM {table} WHERE {condition}");
+        let mut stmt = match self.connection.prepare(sql) {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("incorrect statament parsed at elegant\n\n{}", e.to_string());
+                std::process::exit(1);
+            }
+        };
+
+        while let Ok(State::Row) = stmt.next() {
+            for item in columns {
+                let item_string = item.as_ref().to_owned();
+
+                hmap.insert(
+                    item_string,
+                    stmt.read::<String, _>(item.as_ref()).unwrap()
+                );
+            }
+        }
+
+        hmap
     }
 
     pub fn update(&mut self, table: &str, data: HashMap<&str, Option<&str>>, clause: &str) {
