@@ -26,6 +26,7 @@ fn main() -> ExitCode {
     match args.action {
         Action::Bootstrap => {
             bootstrap(args.verbose);
+            ExitCode::SUCCESS
         },
 
         Action::Add { service, mut password, username, prompt} => {
@@ -53,6 +54,10 @@ fn main() -> ExitCode {
             if prompt {
                 let input = rpassword::prompt_password("Enter secret: ").unwrap();
                 password = Some(input);
+            } else if let None = password {
+                eprintln!("no password or --prompt provided");
+
+                return ExitCode::FAILURE;
             }
 
             let passwd_buf = crypto.encrypt(password.unwrap());
@@ -62,15 +67,15 @@ fn main() -> ExitCode {
                 .collect();
 
 
-            let mut elegant = Elegant::new(
-                "/home/arthurx/.config/krm/storage"
-            );
+            let mut elegant = Elegant::new(configs.database_path);
 
             elegant.insert("services", hashmap![
                 "username" => Some(username),
                 "password" => Some(passwd_bytes.trim().to_owned()),
                 "access"   => Some(service)
-            ]).expect("could not insert");
+            ]).expect("could not insert service at storage");
+
+            ExitCode::SUCCESS
         },
 
         Action::Get { service } => {
@@ -113,10 +118,10 @@ fn main() -> ExitCode {
                 .into_string();
 
             println!("{unencrypted}");
+
+            ExitCode::SUCCESS
         },
 
-        _ => { }
-    };
-
-    ExitCode::SUCCESS
+        _ => { ExitCode::SUCCESS }
+    }
 }
