@@ -10,8 +10,8 @@ pub enum Action {
     },
 
     Add {
-        username: String,
         service: String,
+        username: String,
         password: Option<String>,
 
         #[structopt(long)]

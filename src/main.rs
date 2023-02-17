@@ -6,18 +6,19 @@ mod traits;
 mod elegant;
 mod errors;
 
-use std::{process::ExitCode};
-use elegant::Elegant;
+use std::{process::ExitCode, collections::HashMap};
 
 use krm::{
-    bootstrap, get_config,
-    // run_ddl,
-    // parse_configs
+    bootstrap,
+    get_config,
 };
+
 use opts::Action;
 use structopt::StructOpt;
 use traits::IntoString;
 use crypto::Crypto;
+use inquire::Select;
+use elegant::Elegant;
 
 fn main() -> ExitCode {
 
@@ -103,13 +104,42 @@ fn main() -> ExitCode {
             let elegant = Elegant::new(configs.database_path);
 
             let cols: [&str; 3] = ["id", "username", "password"];
-            let map = elegant.select(
+            let rows = elegant.select(
                 "services",
                 &format!("access = '{}'", service),
                 &cols
             );
 
-            let passwd: Vec<u8> = map["password"]
+            let row: HashMap<String, String> = match rows.len()  {
+                v if v > 1 => {
+                    let service_names: Vec<String> = rows.iter()
+                        .map(|v| format!("{} | {}", v["id"], v["username"]))
+                        .collect();
+
+                    let ans = Select::new("multiple services found", service_names).prompt()
+                        .expect("couldn't not read the input, try again");
+
+                    let id = ans.split(" | ")
+                        .nth(0)
+                        .unwrap();
+
+                    rows.into_iter().filter(|v| {
+                        v["id"] == id
+                    })
+                    .nth(0)
+                    .unwrap()
+                }, 
+
+                1 => rows.into_iter().nth(0).unwrap(),
+
+                // 0
+                _ => { 
+                    eprintln!("no entry matches for service {service}");
+                    std::process::exit(1);
+                }
+            };
+
+            let passwd: Vec<u8> = row["password"]
                 .split(" ")
                 .map(|v| v.trim().parse().unwrap())
                 .collect();
@@ -122,6 +152,6 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         },
 
-        _ => { ExitCode::SUCCESS }
+        _ => ExitCode::SUCCESS 
     }
 }

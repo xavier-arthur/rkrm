@@ -62,11 +62,11 @@ impl Elegant {
         self.connection.execute(sql)
     }
 
-    pub fn select<T>(&self, table: T, condition: T, columns: &[T]) -> HashMap<String, String> 
+    pub fn select<T>(&self, table: T, condition: T, columns: &[T]) -> Vec<HashMap<String, String>>
     where
         T: AsRef<str>
     {
-        let mut hmap: HashMap<String, String> = hashmap![];
+        let mut rows: Vec<HashMap<String, String>> = vec![];
 
         let table     = table.as_ref();
         let condition = condition.as_ref();
@@ -84,6 +84,7 @@ impl Elegant {
 
 
         let sql = format!("SELECT {cols} FROM {table} WHERE {condition}");
+
         let mut stmt = match self.connection.prepare(sql) {
             Ok(v) => v,
             Err(e) => {
@@ -93,17 +94,19 @@ impl Elegant {
         };
 
         while let Ok(State::Row) = stmt.next() {
+            rows.push(hashmap![]);
+
             for item in columns {
                 let item_string = item.as_ref().to_owned();
 
-                hmap.insert(
+                rows.last_mut().unwrap().insert(
                     item_string,
                     stmt.read::<String, _>(item.as_ref()).unwrap()
                 );
             }
         }
 
-        hmap
+        rows
     }
 
     pub fn update(&mut self, table: &str, data: HashMap<&str, Option<&str>>, clause: &str) {

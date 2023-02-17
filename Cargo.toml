@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 home = "0.5.4"
+inquire = "0.5.3"
 openssl = "0.10.45"
 rpassword = "7.2.0"
 serde = { version = "1.0.152", features = ["derive"] }
