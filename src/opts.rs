@@ -22,6 +22,10 @@ pub enum Action {
         service: String
     },
 
+    Edit {
+        service: String
+    },
+
     Bootstrap 
 }
 

@@ -78,7 +78,8 @@ pub fn ddl(connection: &sqlite::Connection) -> Result<(), sqlite::Error> {
 pub fn get_config() -> Result<Config, errors::FileNotFoundError>
 {
     let toml_wd = Config::get_path();
-    let toml_path = Path::new(&toml_wd);
+    let file_path = format!("{toml_wd}/{}", config::CONFIG_FILE);
+    let toml_path = Path::new(&file_path);
     let config: Config;
 
     if toml_path.exists() {

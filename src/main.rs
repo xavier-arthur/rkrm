@@ -17,7 +17,7 @@ use opts::Action;
 use structopt::StructOpt;
 use traits::IntoString;
 use crypto::Crypto;
-use inquire::Select;
+use inquire::{Select, Confirm};
 use elegant::Elegant;
 
 fn main() -> ExitCode {
@@ -26,6 +26,34 @@ fn main() -> ExitCode {
 
     match args.action {
         Action::Bootstrap => {
+            // TODO: check if exists
+
+            let mut path = std::path::PathBuf::new();
+            let conf_folder = config::Config::get_path();
+
+            path.push(format!("{conf_folder}/{}", config::DBNAME));
+
+            // database already exists
+            if  path.exists() {
+                let msg_war = format!("found database at {} proceed nonetheless?", path.display());
+                let mut prompt = Confirm::new(&msg_war);
+                prompt.placeholder = Some("(y/n)");
+
+                match prompt.prompt() {
+                    Ok(v) => { 
+                        if !v {
+                            println!("no files were altered");
+                            std::process::exit(0);
+                        }                        
+                    },
+
+                    Err(e) => {
+                        eprintln!("error reading stdin {:#?}", e);
+                        std::process::exit(1);
+                    }
+                }
+            }
+
             bootstrap(args.verbose);
             ExitCode::SUCCESS
         },
@@ -48,8 +76,8 @@ fn main() -> ExitCode {
             };
 
             let mut crypto = Crypto::new_with_keys(
-                Some(public),
-                Some(private)
+                Some(private),
+                Some(public)
             );
 
             if prompt {
@@ -97,8 +125,8 @@ fn main() -> ExitCode {
             };
 
             let mut crypto = Crypto::new_with_keys(
-                Some(public),
-                Some(private)
+                Some(private),
+                Some(public)
             );
 
             let elegant = Elegant::new(configs.database_path);
@@ -151,6 +179,31 @@ fn main() -> ExitCode {
 
             ExitCode::SUCCESS
         },
+
+        Action::Edit { service } => {
+            let configs = match get_config() {
+                Ok(v) => v,
+                Err(e) => {
+                    println!("Configuration file at {} not found", e.path.unwrap().display());
+                    std::process::exit(1);
+                }
+            };
+
+            let (public, private) = match configs.read_keys() {
+                Ok((publ, prv)) => (publ, prv),
+                Err(_) => {
+                    println!("one or more ssh keys don't exist");
+                    std::process::exit(1);
+                }
+            };
+
+            let mut crypto = Crypto::new_with_keys(
+                Some(private),
+                Some(public)
+            );
+
+            ExitCode::SUCCESS
+        }
 
         _ => ExitCode::SUCCESS 
     }

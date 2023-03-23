@@ -47,10 +47,9 @@ impl Default for Config {
 
 impl Config {
     pub fn get_path() -> String {
-        format!("{}/{}/{}", 
+        format!("{}/{}", 
             home_dir().unwrap().display(),
-            CONFIG_FOLDER,
-            CONFIG_FILE
+            CONFIG_FOLDER
         )
     }
 
