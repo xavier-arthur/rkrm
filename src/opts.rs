@@ -1,12 +1,11 @@
-use std::{fmt::{Display}};
-
+use std::fmt::Display;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt, PartialEq)]
 #[structopt(no_version)]
-pub enum Action { 
+pub enum Action {
     Get {
-        service: String
+        service: Option<String>
     },
 
     Add {
@@ -26,7 +25,7 @@ pub enum Action {
         service: String
     },
 
-    Bootstrap 
+    Bootstrap
 }
 
 impl Display for Action {

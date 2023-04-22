@@ -4,7 +4,7 @@ use openssl::{
     rsa::{
         Rsa,
         Padding,
-    },
+    }, error::ErrorStack,
 };
 
 #[derive(Debug)]
@@ -67,7 +67,7 @@ impl Crypto {
     }
 
 
-    pub fn decrypt(&mut self, data: &[u8]) -> Vec<u8>
+    pub fn decrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, ErrorStack>
     {
         let private_key = self.private_key.as_ref().unwrap();
 
@@ -87,10 +87,12 @@ impl Crypto {
                     Padding::PKCS1
                 ).expect(format!("could not decrypt ! at {}", line!()).as_str());
 
-                self.buf.clone()
+                Ok(self.buf.clone())
             },
 
-            Err(e) => panic!("could not parse rsa file {:#?}", e)
+            Err(e) => {
+                Err(e)
+            }
         }
     }
 }

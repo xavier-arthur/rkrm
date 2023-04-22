@@ -8,11 +8,11 @@ use std::{
     io::Write
 };
 
-use config::Config;
-use errors::FileNotFoundError;
-
-mod config;
+pub mod config;
 mod errors;
+
+use errors::FileNotFoundError;
+use config::Config;
 
 pub fn bootstrap(verbose: bool) {
     let config = Config::default();
@@ -75,8 +75,7 @@ pub fn ddl(connection: &sqlite::Connection) -> Result<(), sqlite::Error> {
     connection.execute(sql)
 }
 
-pub fn get_config() -> Result<Config, errors::FileNotFoundError>
-{
+pub fn get_config() -> Result<Config, errors::FileNotFoundError> {
     let toml_wd = Config::get_path();
     let file_path = format!("{toml_wd}/{}", config::CONFIG_FILE);
     let toml_path = Path::new(&file_path);

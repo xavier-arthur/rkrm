@@ -109,8 +109,27 @@ impl Elegant {
         rows
     }
 
-    pub fn update(&mut self, table: &str, data: HashMap<&str, Option<&str>>, clause: &str) {
+    pub fn update<T>(&mut self, table: &str, mut data: HashMap<&str, Option<String>>, clause: T) -> Result<(), sqlite::Error>
+    where
+        T: AsRef<str>
+    {
+        Self::parse_values(&mut data);
 
-        todo!()
+        let sets = data.into_iter()
+            .fold(String::from(""), |carry, current| {
+                let separator = if carry.len() > 0 {
+                    ","
+                } else {
+                    ""
+                };
+
+                let value = current.1.unwrap();
+
+                format!("{} = {value}{separator}", current.0)
+            });
+
+        let sql = format!("UPDATE {table} SET {sets}");
+
+        self.connection.execute(sql)
     }
 }
